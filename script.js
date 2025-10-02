@@ -1,4 +1,5 @@
-const { useState, useMemo, useEffect, useRef } = React;
+const { useState, useMemo } = React;
+const { motion, AnimatePresence } = window.framerMotion;
 const { jsPDF } = window.jspdf;
 
 function DownloadIcon(props){ return (
@@ -29,7 +30,6 @@ const HOMES = [
 function App(){
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(null);
-  const sheetRef = useRef(null);
 
   const filtered = useMemo(()=>{
     const q = query.trim().toLowerCase();
@@ -39,13 +39,6 @@ function App(){
       String(h.year).includes(q)
     );
   }, [query]);
-
-  useEffect(()=>{
-    // add opening class for the slide-in effect
-    if(sheetRef.current){
-      requestAnimationFrame(()=> sheetRef.current.classList.add("open"));
-    }
-  }, [selected]);
 
   async function exportPDF(){
     if(!selected) return;
@@ -95,64 +88,73 @@ function App(){
         </div>
 
         {filtered.map(home=>(
-          <div
+          <motion.div
             key={home.id}
             className="card"
+            whileHover={{ scale: 1.02 }}
             onClick={()=>setSelected(home)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e)=> (e.key === "Enter") && setSelected(home)}
           >
             <div className="addr">{home.address}</div>
             <div className="muted">Year Built: {home.year}</div>
             <div className="muted">Sq Ft: {home.sqft}</div>
             <p style={{marginTop:8}}>{home.report}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
 
-      {selected && (
-        <div className="overlay" onClick={()=>setSelected(null)}>
-          <div
-            id="report-sheet"
-            className="sheet"
-            ref={sheetRef}
-            onClick={(e)=>e.stopPropagation()}
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            className="overlay"
+            initial={{ opacity:0 }}
+            animate={{ opacity:1 }}
+            exit={{ opacity:0 }}
+            onClick={()=>setSelected(null)}
           >
-            <button className="close-btn" onClick={()=>setSelected(null)}>✕</button>
+            <motion.div
+              id="report-sheet"
+              className="sheet"
+              initial={{ y: 20, opacity:0 }}
+              animate={{ y: 0, opacity:1 }}
+              exit={{ y: 20, opacity:0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 24 }}
+              onClick={(e)=>e.stopPropagation()}
+            >
+              <button className="close-btn" onClick={()=>setSelected(null)}>✕</button>
 
-            <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:10}}>
-              <HomeIcon />
-              <h2 style={{margin:0}}>Home Certification Report</h2>
-            </div>
-
-            <div className="muted" style={{marginBottom:14}}>{selected.address}</div>
-            <div style={{
-              display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16
-            }}>
-              <div className="card" style={{padding:12}}>
-                <div className="muted">Year Built</div>
-                <div style={{fontWeight:700}}>{selected.year}</div>
+              <div style={{display:"flex", alignItems:"center", gap:10, marginBottom:10}}>
+                <HomeIcon />
+                <h2 style={{margin:0}}>Home Certification Report</h2>
               </div>
-              <div className="card" style={{padding:12}}>
-                <div className="muted">Square Feet</div>
-                <div style={{fontWeight:700}}>{selected.sqft}</div>
+
+              <div className="muted" style={{marginBottom:14}}>{selected.address}</div>
+              <div style={{
+                display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16
+              }}>
+                <div className="card" style={{padding:12}}>
+                  <div className="muted">Year Built</div>
+                  <div style={{fontWeight:700}}>{selected.year}</div>
+                </div>
+                <div className="card" style={{padding:12}}>
+                  <div className="muted">Square Feet</div>
+                  <div style={{fontWeight:700}}>{selected.sqft}</div>
+                </div>
               </div>
-            </div>
 
-            <div className="card" style={{padding:16}}>
-              <div className="muted">Summary</div>
-              <p style={{marginTop:6}}>{selected.report}</p>
-            </div>
+              <div className="card" style={{padding:16}}>
+                <div className="muted">Summary</div>
+                <p style={{marginTop:6}}>{selected.report}</p>
+              </div>
 
-            <div className="footer">
-              <button className="primary" onClick={exportPDF}>
-                <DownloadIcon style={{marginRight:6}}/> Download PDF
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="footer">
+                <button className="primary" onClick={exportPDF}>
+                  <DownloadIcon style={{marginRight:6}}/> Download PDF
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
